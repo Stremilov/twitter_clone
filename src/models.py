@@ -1,8 +1,8 @@
 from typing import List
 
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String, create_engine, Table, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 engine = create_engine("sqlite:///diplom.db")
 Session = sessionmaker(bind=engine)
@@ -34,6 +34,13 @@ class Tweet(Base):
     def getLikes(self):
         return self.likes
 
+followers = Table(
+    "followers",
+    Base.metadata,
+    Column("follower_id", Integer, ForeignKey("users.id")),
+    Column("followee_id", Integer, ForeignKey("users.id"))
+)
+
 
 class User(Base):
     __tablename__ = "user"
@@ -42,7 +49,13 @@ class User(Base):
     name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     age = Column(String(255), nullable=False)
-    followers = Column(Integer, default=0)
+    followers = relationship(
+        "User",
+        secondary="followers",
+        primaryjoin="User.id == followers.c.followee_id",
+        secondaryjoin="User.id == followers.c.follower_id",
+        backref="following"
+    )
 
     def getUserId(self):
         return self.id
@@ -62,6 +75,8 @@ class User(Base):
     def follow(self):
         # code here
         ...
+
+
 
 
 class TweetCreate(BaseModel):
