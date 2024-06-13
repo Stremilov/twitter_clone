@@ -1,11 +1,8 @@
-from datetime import datetime, timedelta
-from sqlalchemy import create_engine, Column, Integer, String, Date, Float, Boolean, DateTime, ForeignKey, Table
-from sqlalchemy.dialects.postgresql import ARRAY
+from typing import List
 
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship
-
-
+from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 engine = create_engine("sqlite:///diplom.db")
 Session = sessionmaker(bind=engine)
@@ -14,21 +11,19 @@ session = Session()
 Base = declarative_base()
 
 
-
 class Tweet(Base):
     __tablename__ = "tweet"
 
-    __id = Column(Integer, primary_key=True)
-    __tweet_data = Column(String(255), nullable=False)
+    id = Column(Integer, primary_key=True)
+    tweet_data = Column(String(255), nullable=False)
     # tweet_media_ids = Column(ARRAY(Integer), nullable=True)
-    __likes = Column(Integer, default=0)
-
+    likes = Column(Integer, default=0)
 
     def like(self, tweet) -> None:
-        tweet.__likes += 1
+        tweet.likes += 1
 
     def unlike(self, tweet) -> None:
-        tweet.__likes -= 1
+        tweet.likes -= 1
 
     def getId(self):
         return self.id
@@ -36,32 +31,87 @@ class Tweet(Base):
     def getData(self):
         return self.tweet_data
 
+    def getLikes(self):
+        return self.likes
+
 
 class User(Base):
     __tablename__ = "user"
 
-    __id = Column(Integer, primary_key=True)
-    __name = Column(String(255), nullable=False)
-    __last_name = Column(String(255), nullable=False)
-    __age = Column(String(255), nullable=False)
-    __followers = Column(Integer, default=0)
-
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    age = Column(String(255), nullable=False)
+    followers = Column(Integer, default=0)
 
     def getUserId(self):
-        return self.__id
+        return self.id
 
     def getUserName(self):
-        return self.__name
+        return self.name
 
     def getUserLastName(self):
-        return self.__last_name
+        return self.last_name
 
     def getUserAge(self):
-        return self.__age
+        return self.age
 
     def getUserFollowers(self):
-        return self.__followers
+        return self.followers
 
     def follow(self):
-        #code here
+        # code here
         ...
+
+
+class TweetCreate(BaseModel):
+    tweet_data: str
+
+
+# Pydantic модели
+class Author(BaseModel):
+    id: int
+    name: str
+
+
+class Like(BaseModel):
+    user_id: int
+    name: str
+
+
+class TweetResponse(BaseModel):
+    id: int
+    content: str
+    attachments: List[str]
+    author: Author
+    likes: List[Like]
+
+
+class FeedResponse(BaseModel):
+    result: bool
+    tweets: List[TweetResponse]
+
+
+class ErrorResponse(BaseModel):
+    result: bool
+    error_type: str
+    error_message: str
+
+# Pydantic модели
+class Follower(BaseModel):
+    id: int
+    name: str
+
+class Following(BaseModel):
+    id: int
+    name: str
+
+class UserProfile(BaseModel):
+    id: int
+    name: str
+    followers: List[Follower]
+    following: List[Following]
+
+class UserProfileResponse(BaseModel):
+    result: bool
+    user: UserProfile

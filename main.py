@@ -1,9 +1,17 @@
+from typing import List
+
+from fastapi import HTTPException, FastAPI
 from flask import Flask, render_template, request, jsonify
 import os
 
-from src.models import Base, engine, session, Tweet, User
+from pydantic import BaseModel
 
-app = Flask(__name__)
+from src.models import Base, engine, session, Tweet, User, TweetCreate, FeedResponse, ErrorResponse, TweetResponse, \
+    Author, Like, UserProfileResponse, Follower, Following, UserProfile
+
+app = FastAPI()
+
+
 
 def save_uploaded_file(file):
     upload_folder = 'uploads'
@@ -14,103 +22,165 @@ def save_uploaded_file(file):
     return file_path
 
 
-@app.route("/api/tweets", methods=['POST'])
-def create_tweet():
-    tweet_data = request.json.get('tweet_data')
-    # tweet_media_ids = request.json.get('tweet_media_ids')
-
-    new_tweet = Tweet(tweet_data=tweet_data,
-                      # tweet_media_ids=tweet_media_ids
-                      )
+@app.post("/api/tweets")
+def create_tweet(tweet: TweetCreate):
+    new_tweet = Tweet(tweet_data=tweet.tweet_data)
     session.add(new_tweet)
     session.commit()
+    session.refresh(new_tweet)
+    return {"result": True, "tweet_id": new_tweet.id}
 
-    tweet_id = new_tweet.id
-    session.close()
-
-    return jsonify({
-        'result': True,
-        'tweet_id': tweet_id
-    })
-
-
-@app.route("/api/medias", methods=['POST'])
-def upload_media():
-    api_key = request.form.get('api-key')
+@app.post("/api/medias")
+async def upload_media(api_key: str, file):
     if api_key != 'your_api_key':
-        return jsonify({'result': False, 'error': 'Invalid API key'}), 403
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if file.filename == '':
+        raise HTTPException(status_code=400, detail="No file selected")
 
-    uploaded_file = request.files['form']
-    if uploaded_file.filename == '':
-        return jsonify({'result': False, 'error': 'No file selected'}), 400
+    upload_folder = 'uploads'
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    file_path = os.path.join(upload_folder, file.filename)
 
-    file_path = save_uploaded_file(uploaded_file)
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
 
-    return jsonify({
-        'result': True,
-        'media_id': file_path
-    })
+    return {"result": True, "media_id": file_path}
 
-
-@app.route("/api/tweets/<int:tweet_id>", methods=['DELETE'])
-def delete_tweet(tweet_id):
-    api_key = request.json.get('api-key')
-
+@app.delete("/api/tweets/{tweet_id}")
+def delete_tweet(tweet_id: int, api_key: str, db):
     if api_key != '1234':
-        return jsonify({'result': False, 'error': 'Invalid API key'}), 403
-
-    tweet = session.query(Tweet).filter(Tweet.id == tweet_id).first()
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    tweet = db.query(Tweet).filter(Tweet.id == tweet_id).first()
     if tweet:
-        session.delete(tweet)
-        session.commit()
-        return jsonify({'result': True})
+        db.delete(tweet)
+        db.commit()
+        return {"result": True}
     else:
-        return jsonify({'result': False, 'error': 'Tweet not found'}), 404
+        raise HTTPException(status_code=404, detail="Tweet not found")
 
-
-@app.route("/api/tweets/<int:tweet_id>/likes", methods=['POST'])
+@app.post("/api/tweets/{tweet_id}/likes")
 def like_tweet(tweet_id, self=None):
-    api_key = request.json.get('api-key')
-
     tweet = session.query(Tweet).filter(Tweet.id == tweet_id).first()
     if tweet:
         Tweet.like(self, tweet)
         session.commit()
-        return jsonify({'result': True})
+        return {"result": True}
     else:
-        return jsonify({'result': False, 'error': 'Tweet not found'}), 404
+        raise HTTPException(status_code=404, detail="Tweet not found")
 
-
-@app.route("/api/tweets/<int:tweet_id>/likes", methods=['DELETE'])
+@app.delete("/api/tweets/{tweet_id}/likes")
 def unlike_tweet(tweet_id, self=None):
-    api_key = request.json.get('api-key')
-
     tweet = session.query(Tweet).filter(Tweet.id == tweet_id).first()
-    if tweet:
+    if tweet.getLikes() != 0:
         Tweet.unlike(self, tweet)
         session.commit()
-        return jsonify({'result': True})
+        return {"result": True}
     else:
-        return jsonify({'result': False, 'error': 'Tweet not found'}), 404
+        raise HTTPException(status_code=404, detail="Tweet not found")
 
-
-@app.route('/api/users/<int:user_id>/follow', methods=['POST'])
-def follow_user(user_id):
-    api_key = request.json.get('api-key')
+@app.post("/api/users/{user_id}/follow")
+def follow_user(user_id: int, api_key: str):
     if api_key != 'your_api_key':
-        return jsonify({'result': False, 'message': 'Invalid API key'}), 401
-
+        raise HTTPException(status_code=401, detail="Invalid API key")
     user = session.query(User).filter(User.id == user_id).first()
     if not user:
-        return jsonify({'result': False, 'message': 'User not found'}), 404
+        raise HTTPException(status_code=404, detail="User not found")
 
-    if user.getUserId() not in ...:
-        #code here
-        ...
+    # Placeholder for follow user logic
+    # if user.getUserId() not in ...:
+    #     #code here
+    #     ...
 
-    return jsonify({'result': True, 'message': 'Successfully followed user'})
+    return {"result": True, "message": "Successfully followed user"}
 
+@app.post("/api/users/{user_id}/follow")
+def unfollow_user(user_id: int, api_key: str):
+    if api_key != 'your_api_key':
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Placeholder for follow user logic
+    # if user.getUserId() not in ...:
+    #     #code here
+    #     ...
+
+    return {"result": True, "message": "Successfully followed user"}
+
+
+@app.get("/api/tweets", response_model=FeedResponse, responses={500: {"model": ErrorResponse}})
+def get_tweets(api_key):
+    try:
+        # Проверка api-key (измените логику проверки в соответствии с вашим приложением)
+        if api_key != 'your_api_key':
+            raise HTTPException(status_code=403, detail="Invalid API key")
+
+        # Получение твитов из базы данных
+        tweets = session.query(Tweet).all()
+
+        tweet_list = []
+        for tweet in tweets:
+            tweet_list.append(TweetResponse(
+                id=tweet.id,
+                content=tweet.content,
+                attachments=[attachment.url for attachment in tweet.attachments],
+                author=Author(id=tweet.author.id, name=tweet.author.name),
+                likes=[Like(user_id=like.user_id, name=like.user_name) for like in tweet.likes]
+            ))
+
+        return FeedResponse(result=True, tweets=tweet_list)
+    except Exception as e:
+        return ErrorResponse(result=False, error_type="internal_error", error_message=str(e))
+
+
+@app.get("/api/users/me", response_model=UserProfileResponse, responses={500: {"model": ErrorResponse}})
+def get_user_profile(api_key):
+    try:
+        if api_key != 'your_api_key':
+            raise HTTPException(status_code=403, detail="Invalid API key")
+
+        user = session.query(User).filter(User.api_key == api_key).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        followers_list = [Follower(id=follower.id, name=follower.name) for follower in user.followers]
+        following_list = [Following(id=followee.id, name=followee.name) for followee in user.following]
+
+        user_profile = UserProfile(
+            id=user.id,
+            name=user.name,
+            followers=followers_list,
+            following=following_list
+        )
+
+        return UserProfileResponse(result=True, user=user_profile)
+    except Exception as e:
+        return ErrorResponse(result=False, error_type="internal_error", error_message=str(e))
+
+
+@app.get("/api/users/{user_id}", response_model=UserProfileResponse, responses={500: {"model": ErrorResponse}})
+def get_user(user_id):
+    try:
+        # Получение пользователя по ID
+        user = session.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        followers_list = [Follower(id=follower.id, name=follower.name) for follower in user.followers]
+        following_list = [Following(id=followee.id, name=followee.name) for followee in user.following]
+
+        user_profile = UserProfile(
+            id=user.id,
+            name=user.name,
+            followers=followers_list,
+            following=following_list
+        )
+
+        return UserProfileResponse(result=True, user=user_profile)
+    except Exception as e:
+        return ErrorResponse(result=False, error_type="internal_error", error_message=str(e))
 
 if __name__ == "__main__":
     Base.metadata.create_all(bind=engine)
-    app.run(debug=True)
