@@ -1,16 +1,15 @@
-from typing import List
-
-from fastapi import HTTPException, FastAPI
-from flask import Flask, render_template, request, jsonify
+import uvicorn
+from fastapi import HTTPException, FastAPI, File, UploadFile
 import os
-
-from pydantic import BaseModel
 
 from src.models import Base, engine, session, Tweet, User, TweetCreate, FeedResponse, ErrorResponse, TweetResponse, \
     Author, Like, UserProfileResponse, Follower, Following, UserProfile
 
-app = FastAPI()
-
+app = FastAPI(
+    title="Twitter API",
+    description="API для управления твитами и пользователями",
+    version="1.0.0"
+)
 
 
 def save_uploaded_file(file):
@@ -31,7 +30,7 @@ def create_tweet(tweet: TweetCreate):
     return {"result": True, "tweet_id": new_tweet.id}
 
 @app.post("/api/medias")
-async def upload_media(api_key: str, file):
+async def upload_media(api_key: str, file: UploadFile = File(...)):
     if api_key != 'your_api_key':
         raise HTTPException(status_code=403, detail="Invalid API key")
     if file.filename == '':
@@ -48,32 +47,32 @@ async def upload_media(api_key: str, file):
     return {"result": True, "media_id": file_path}
 
 @app.delete("/api/tweets/{tweet_id}")
-def delete_tweet(tweet_id: int, api_key: str, db):
+def delete_tweet(tweet_id: int, api_key: str):
     if api_key != '1234':
         raise HTTPException(status_code=403, detail="Invalid API key")
-    tweet = db.query(Tweet).filter(Tweet.id == tweet_id).first()
+    tweet = session.query(Tweet).filter(Tweet.id == tweet_id).first()
     if tweet:
-        db.delete(tweet)
-        db.commit()
+        session.delete(tweet)
+        session.commit()
         return {"result": True}
     else:
         raise HTTPException(status_code=404, detail="Tweet not found")
 
 @app.post("/api/tweets/{tweet_id}/likes")
-def like_tweet(tweet_id, self=None):
+def like_tweet(tweet_id: int):
     tweet = session.query(Tweet).filter(Tweet.id == tweet_id).first()
     if tweet:
-        Tweet.like(self, tweet)
+        Tweet.like(None, tweet)
         session.commit()
         return {"result": True}
     else:
         raise HTTPException(status_code=404, detail="Tweet not found")
 
 @app.delete("/api/tweets/{tweet_id}/likes")
-def unlike_tweet(tweet_id, self=None):
+def unlike_tweet(tweet_id: int):
     tweet = session.query(Tweet).filter(Tweet.id == tweet_id).first()
     if tweet.getLikes() != 0:
-        Tweet.unlike(self, tweet)
+        Tweet.unlike(None, tweet)
         session.commit()
         return {"result": True}
     else:
@@ -94,7 +93,7 @@ def follow_user(user_id: int, api_key: str):
 
     return {"result": True, "message": "Successfully followed user"}
 
-@app.post("/api/users/{user_id}/follow")
+@app.post("/api/users/{user_id}/unfollow")
 def unfollow_user(user_id: int, api_key: str):
     if api_key != 'your_api_key':
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -102,16 +101,15 @@ def unfollow_user(user_id: int, api_key: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Placeholder for follow user logic
+    # Placeholder for unfollow user logic
     # if user.getUserId() not in ...:
     #     #code here
     #     ...
 
-    return {"result": True, "message": "Successfully followed user"}
-
+    return {"result": True, "message": "Successfully unfollowed user"}
 
 @app.get("/api/tweets", response_model=FeedResponse, responses={500: {"model": ErrorResponse}})
-def get_tweets(api_key):
+def get_tweets(api_key: str):
     try:
         # Проверка api-key (измените логику проверки в соответствии с вашим приложением)
         if api_key != 'your_api_key':
@@ -136,7 +134,7 @@ def get_tweets(api_key):
 
 
 @app.get("/api/users/me", response_model=UserProfileResponse, responses={500: {"model": ErrorResponse}})
-def get_user_profile(api_key):
+def get_user_profile(api_key: str):
     try:
         if api_key != 'your_api_key':
             raise HTTPException(status_code=403, detail="Invalid API key")
@@ -161,7 +159,7 @@ def get_user_profile(api_key):
 
 
 @app.get("/api/users/{user_id}", response_model=UserProfileResponse, responses={500: {"model": ErrorResponse}})
-def get_user(user_id):
+def get_user(user_id: int):
     try:
         # Получение пользователя по ID
         user = session.query(User).filter(User.id == user_id).first()
@@ -184,3 +182,4 @@ def get_user(user_id):
 
 if __name__ == "__main__":
     Base.metadata.create_all(bind=engine)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
