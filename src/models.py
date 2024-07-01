@@ -46,16 +46,17 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
+    api_key = Column(String, nullable=False)
     name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     age = Column(String(255), nullable=False)
-    followers = relationship(
-        "User",
-        secondary="followers",
-        primaryjoin="User.id == followers.c.followee_id",
-        secondaryjoin="User.id == followers.c.follower_id",
-        backref="following"
-    )
+    # followers = relationship(
+    #     "User",
+    #     secondary="followers",
+    #     primaryjoin="User.id == followers.c.followee_id",
+    #     secondaryjoin="User.id == followers.c.follower_id",
+    #     backref="following"
+    # )
 
     def getUserId(self):
         return self.id
@@ -69,8 +70,8 @@ class User(Base):
     def getUserAge(self):
         return self.age
 
-    def getUserFollowers(self):
-        return self.followers
+    # def getUserFollowers(self):
+    #     return self.followers
 
     def follow(self):
         # code here
@@ -81,6 +82,13 @@ class User(Base):
 
 class TweetCreate(BaseModel):
     tweet_data: str
+
+class UserCreate(BaseModel):
+    api_key: str
+    name: str
+    last_name: str
+    age: int
+
 
 
 # Pydantic модели
@@ -96,10 +104,8 @@ class Like(BaseModel):
 
 class TweetResponse(BaseModel):
     id: int
-    content: str
-    attachments: List[str]
-    author: Author
-    likes: List[Like]
+    data: str
+    likes: int
 
 
 class FeedResponse(BaseModel):
