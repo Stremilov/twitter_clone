@@ -1,17 +1,22 @@
 import uvicorn
 from fastapi import HTTPException, FastAPI, File, UploadFile
 import os
+from fastapi.staticfiles import StaticFiles
 
 from .models import (Base, engine, session, Tweet, User, TweetCreate, FeedResponse, ErrorResponse, TweetResponse, \
     Author, Like, UserProfileResponse, Follower, Following, UserProfile, UserCreate)
 
 
+
 app = FastAPI(
     title="Twitter API",
     description="API для управления твитами и пользователями",
-    version="1.0.0"
+    version="1.0.0",
+    root_path="/api"
 )
 
+
+app.mount("/static", app=StaticFiles(directory="static", html=True), name="static")
 
 def save_uploaded_file(file):
     upload_folder = 'uploads'
