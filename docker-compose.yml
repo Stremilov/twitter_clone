@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  twitter_app:
+    container_name: twitter_app
+    build:
+      context: .
+    stop_signal: SIGKILL
+    environment:
+      - FASTAPI_HOST=0.0.0.0
+      - FASTAPI_PORT=8000
+      - TEST_MODE=False
+    ports:
+      - "8000:8000"
+    volumes:
+#      - ./twitter_logs:/app/logs
+#      - ./uploads:/app/uploads
+      - ./static:/app/static
