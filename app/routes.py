@@ -19,7 +19,9 @@ def save_uploaded_file(file: UploadFile):
 
 
 @router.post("/api/tweets", response_model=schemas.Tweet)
-def create_tweet(tweet: schemas.TweetCreate, api_key: str, db: Session = Depends(get_db)):
+def create_tweet(
+        tweet: schemas.TweetCreate,
+        api_key: str, db: Session = Depends(get_db)):
     user = crud.get_user_by_api_key(db, api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")

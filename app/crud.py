@@ -1,5 +1,9 @@
+from typing import Any, Type
+
 from sqlalchemy.orm import Session
 from . import models, schemas
+from .models import User
+
 
 def get_user_by_api_key(db: Session, api_key: str):
     return db.query(models.User).filter(models.User.api_key == api_key).first()
@@ -58,8 +62,7 @@ def unfollow_user(db: Session, follower_id: int, followed_id: int):
 def get_feed(db: Session, user_id: int):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if user:
-        followed_ids = [u.id for u in user.followed]
-        tweets = db.query(models.Tweet).filter(models.Tweet.author_id.in_(followed_ids)).order_by(models.Tweet.likes.desc()).all()
+        tweets = db.query(models.Tweet).all()
         return tweets
     return []
 
@@ -69,3 +72,21 @@ def upload_media(db: Session, file_path: str, tweet_id: int):
     db.commit()
     db.refresh(db_media)
     return db_media
+
+def create_test_user(db: Session, name: str):
+    # Проверка, существует ли пользователь с таким именем
+    user = db.query(models.User).filter(models.User.name == name).first()
+
+    if user:
+        return user
+
+    # Генерация уникального API ключа
+    api_key = "test2"
+    # Создание объекта пользователя
+    user = models.User(name=name, api_key=api_key)
+    # Добавление пользователя в сессию
+    db.add(user)
+    # Фиксация изменений
+    db.commit()
+    db.refresh(user)
+    return user

@@ -5,7 +5,7 @@ class TweetBase(BaseModel):
     tweet_data: str
 
 class TweetCreate(TweetBase):
-    tweet_media_ids: Optional[List[int]] = None
+    pass
 
 class Tweet(TweetBase):
     id: int

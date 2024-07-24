@@ -20,4 +20,3 @@ def get_db():
         db.close()
 
 
-Base.metadata.create_all(bind=engine)
