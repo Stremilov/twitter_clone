@@ -22,8 +22,7 @@ app_api.include_router(router)
 app.include_router(router)
 
 app.mount("/api", app_api)
-# app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
-# app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
 # app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 def create_test_user(db: Session, name: str, api_key):
@@ -42,8 +41,8 @@ Base.metadata.create_all(bind=engine)
 #
 db: Session = SessionLocal()
 #
-test_user = create_test_user(db, name="Test User")
-test_user_2 = create_test_user(db, name="Test User 2")
+test_user = create_test_user(db, name="Test User", api_key="test2")
+test_user_2 = create_test_user(db, name="Test User 2", api_key="test")
 print(
     f"Created test user: {test_user.name}, Id: {test_user.id}, API Key: {test_user.api_key}"
 )

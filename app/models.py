@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Table, ARRAY
 from sqlalchemy.orm import relationship, backref
 from .database import Base
 
@@ -38,6 +38,7 @@ class Tweet(Base):
     __tablename__ = "tweets"
     id = Column(Integer, primary_key=True, index=True)
     tweet_data = Column(Text, index=True)
+    tweet_media_ids = Column(ARRAY(Integer), default=None)
     author_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="tweets")
     liked_by = relationship("User", secondary=likes, back_populates="likes")

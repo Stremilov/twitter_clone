@@ -14,6 +14,14 @@ def create_tweet(db: Session, tweet, user_id: int):
     db.add(db_tweet)
     db.commit()
     db.refresh(db_tweet)
+
+    if tweet.tweet_media_ids:
+        media_list = db.query(models.Media).filter(models.Media.id.in_(tweet.tweet_media_ids)).all()
+        for media in media_list:
+            media.tweet_id = db_tweet.id
+        db.add_all(media_list)
+        db.commit()
+
     return db_tweet
 
 
@@ -74,12 +82,8 @@ def get_feed(db: Session):
     return db.query(models.Tweet).all()
 
 
-def upload_media(db: Session, file_path: str, tweet_id: int = None):
-    media = models.Media(file_path=file_path, tweet_id=tweet_id)
+def upload_media(db: Session, file_path: str):
+    media = models.Media(file_path=file_path)
     db.add(media)
     db.commit()
-    db.refresh(media)
     return media
-
-
-

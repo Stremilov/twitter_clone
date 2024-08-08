@@ -22,6 +22,7 @@ class TweetCreateResponse(BaseModel):
 
 class TweetCreate(BaseModel):
     tweet_data: str
+    tweet_media_ids: Optional[List[int]]
 
 
 class Tweet(BaseModel):

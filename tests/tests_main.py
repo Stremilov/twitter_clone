@@ -1,15 +1,15 @@
 import sys
 import os
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-
+from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 # Добавление корневого каталога проекта в sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base, get_db
-from app.main import app_api, create_test_user
+from app.main import app_api,app , create_test_user
 from app import crud, models
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -31,7 +31,8 @@ def override_get_db():
         db.close()
 
 
-client = TestClient(app_api)
+client_base = TestClient(app)
+client_api = TestClient(app_api)
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_and_teardown():
@@ -45,7 +46,7 @@ def setup_and_teardown():
 
 def test_create_tweet(setup_and_teardown):
     test_user, _ = setup_and_teardown
-    response = client.post(
+    response = client_api.post(
         "/tweets",
         json={"tweet_data": "This is a test tweet"},
         headers={"api_key": test_user.api_key},

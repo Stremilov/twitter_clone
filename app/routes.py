@@ -12,13 +12,13 @@ router = APIRouter()
 
 
 def save_uploaded_file(file: UploadFile):
-    upload_folder = "uploads"
+    upload_folder = "app/static"
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
     file_path = os.path.join(upload_folder, file.filename)
     with open(file_path, "wb") as buffer:
         buffer.write(file.file.read())
-    return file_path
+    return file.filename
 
 
 @router.post("/tweets", response_model=schemas.TweetCreateResponse)
@@ -28,9 +28,12 @@ def make_tweet(
     db: Session = Depends(get_db),
 ):
     user = crud.get_user_by_api_key(db, api_key)
+
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
+
     db_tweet = crud.create_tweet(db, tweet, user.id)
+
     return {"result": True, "tweet_id": db_tweet.id}
 
 
@@ -41,11 +44,10 @@ async def upload_media(
     db: Session = Depends(get_db),
 ):
     user = crud.get_user_by_api_key(db, api_key)
-    last_tweet_index = db.query(models.Tweet).order_by(desc(models.Tweet.id)).first()
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
     file_path = save_uploaded_file(file)
-    media = crud.upload_media(db, file_path, last_tweet_index)
+    media = crud.upload_media(db, file_path)
     return {"result": True, "media_id": media.id}
 
 
