@@ -23,7 +23,6 @@ app.include_router(router)
 
 app.mount("/api", app_api)
 app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
-# app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 def create_test_user(db: Session, name: str, api_key):
     user = db.query(models.User).filter(models.User.name == name).first()

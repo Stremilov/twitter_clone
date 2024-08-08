@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from starlette.testclient import TestClient
-from fastapi.testclient import TestClient
-# Добавление корневого каталога проекта в sys.path
+from httpx import TestClient
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base, get_db
