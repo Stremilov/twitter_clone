@@ -12,7 +12,7 @@ from app.database import Base, get_db
 from app.main import app_api,app , create_test_user
 from app import crud, models
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///test.db"
 
 
 engine = create_engine(

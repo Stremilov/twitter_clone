@@ -1,0 +1,44 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v2
+#      - name: Stop process on port 8080
+#        uses: appleboy/ssh-action@v0.1.10
+#        with:
+#          host: 188.225.58.99
+#          username: root
+#          password: ${{ secrets.SSH_PRIVATE_KEY }}
+#          port: 22
+#          script: |
+#            echo "Stopping process on port 8080..."
+#            PID=$(lsof -t -i:8080)
+#            if [ -n "$PID" ]; then
+#              echo "Process with PID $PID is using port 8080. Stopping it."
+#              kill -9 $PID
+#              echo "Process stopped."
+#            else
+#              echo "No process found on port 8080."
+#            fi
+#      - uses: appleboy/ssh-action@v0.1.10
+#        with:
+#          host: 188.225.58.99
+#          username: root
+#          password: ${{ secrets.SSH_PRIVATE_KEY }}
+#          port: 22
+#          script: |
+#            rm --recursive twitter_clone
+#            git clone https://github.com/Stremilov/twitter_clone.git
+#            cd twitter_clone
+#            docker compose up -d --build
+#            echo "Application started."
