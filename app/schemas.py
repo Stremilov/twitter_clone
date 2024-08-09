@@ -2,19 +2,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-class LoginRequest(BaseModel):
-    api_key: str
-
-
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    api_key: str
-
-    class Config:
-        orm_mode = True
-
-
 class TweetCreateResponse(BaseModel):
     result: bool
     tweet_id: int
@@ -88,14 +75,3 @@ class ErrorResponse(BaseModel):
 class UserProfileResponse(BaseModel):
     result: bool
     user: User
-
-
-class GetMe(BaseModel):
-    api_key: str
-
-
-class GetApiKey(BaseModel):
-    api_key: str
-
-
-

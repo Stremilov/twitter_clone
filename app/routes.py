@@ -1,11 +1,11 @@
 import os
 
 from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, File
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from . import schemas, models
-
-from app import crud
+import schemas, models
+from app.repository.user_repository import UserRepository
+from app.repository.tweet_repository import TweetRepository
+from app.repository.media_repository import MediaRepository
 from app.database import get_db
 
 router = APIRouter()
@@ -27,12 +27,15 @@ def make_tweet(
     api_key: str = Header(...),
     db: Session = Depends(get_db),
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+    tweet_repo = TweetRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
 
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
-    db_tweet = crud.create_tweet(db, tweet, user.id)
+    db_tweet = tweet_repo.create_tweet(tweet, user.id)
 
     return {"result": True, "tweet_id": db_tweet.id}
 
@@ -43,11 +46,14 @@ async def upload_media(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+    media_repo = MediaRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
     file_path = save_uploaded_file(file)
-    media = crud.upload_media(db, file_path)
+    media = media_repo.upload_media(file_path)
     return {"result": True, "media_id": media.id}
 
 
@@ -55,10 +61,13 @@ async def upload_media(
 def delete_tweet(
     tweet_id: int, api_key: str = Header(...), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+    tweet_repo = TweetRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
-    if not crud.delete_tweet(db, tweet_id, user.id):
+    if not tweet_repo.delete_tweet(tweet_id, user.id):
         raise HTTPException(status_code=404, detail="Tweet not found or unauthorized")
     return {"result": True}
 
@@ -67,10 +76,13 @@ def delete_tweet(
 def like_tweet(
     tweet_id: int, api_key: str = Header(...), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+    tweet_repo = TweetRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
-    if not crud.like_tweet(db, tweet_id, user.id):
+    if not tweet_repo.like_tweet(tweet_id, user.id):
         raise HTTPException(status_code=404, detail="Tweet not found")
     return {"result": True}
 
@@ -79,10 +91,13 @@ def like_tweet(
 def unlike_tweet(
     tweet_id: int, api_key: str = Header(...), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+    tweet_repo = TweetRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
-    if not crud.unlike_tweet(db, tweet_id, user.id):
+    if not tweet_repo.unlike_tweet(tweet_id, user.id):
         raise HTTPException(status_code=404, detail="Tweet not found")
     return {"result": True}
 
@@ -91,10 +106,12 @@ def unlike_tweet(
 def follow_user(
     user_id: int, api_key: str = Header(...), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
-    if not crud.follow_user(db, user.id, user_id):
+    if not user_repo.follow_user(user.id, user_id):
         raise HTTPException(status_code=404, detail="User not found")
     return {"result": True}
 
@@ -103,24 +120,27 @@ def follow_user(
 def unfollow_user(
     user_id: int, api_key: str = Header(...), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
-    if not crud.unfollow_user(db, user.id, user_id):
+    if not user_repo.unfollow_user(user.id, user_id):
         raise HTTPException(status_code=404, detail="User not found")
     return {"result": True}
 
 
 @router.get("/tweets", response_model=schemas.TweetResponse)
 def get_feed(db: Session = Depends(get_db)):
-    tweets_data = db.query(models.Tweet).all()
+    tweet_repo = TweetRepository(db)
+
+    tweets_data = tweet_repo.get_feed()
 
     if not tweets_data:
         raise HTTPException(status_code=404, detail="No tweets found")
 
     tweets = []
     for tweet in tweets_data:
-
         media = [media.file_path for media in tweet.media]
         likes = [{"user_id": user.id, "name": user.name} for user in tweet.liked_by]
         tweet_dict = {
@@ -137,6 +157,7 @@ def get_feed(db: Session = Depends(get_db)):
 @router.get("/users/me")
 def get_profile(api_key: str = Header(...), db: Session = Depends(get_db)):
     user_data = db.query(models.User).filter(models.User.api_key == api_key).first()
+
     if user_data:
         following_list = [{"id": u.id, "name": u.name} for u in user_data.followed]
         followers_list = [{"id": u.id, "name": u.name} for u in user_data.followers]
@@ -156,7 +177,10 @@ def get_profile(api_key: str = Header(...), db: Session = Depends(get_db)):
 def get_user_profile(
     user_id: int, api_key: str = Header(...), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_api_key(db, api_key)
+    user_repo = UserRepository(db)
+
+    user = user_repo.get_user_by_api_key(api_key)
+
     if not user:
         raise HTTPException(status_code=403, detail="Invalid API key")
     user_profile = db.query(models.User).filter(models.User.id == user_id).first()
