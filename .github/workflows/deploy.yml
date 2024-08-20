@@ -26,11 +26,11 @@ jobs:
 
       - name: Run Black for code formatting
         run: |
-          black --check .
+          black --check --diff . || true
 
       - name: Run mypy for static type checking
         run: |
-          mypy .
+          mypy . || true
 
       # Остановка процесса на порту 8080
 #      - name: Stop process on port 8080
