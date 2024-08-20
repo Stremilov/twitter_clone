@@ -10,9 +10,29 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black mypy
+
+      - name: Run Black for code formatting
+        run: |
+          black --check .
+
+      - name: Run mypy for static type checking
+        run: |
+          mypy .
+
+      # Остановка процесса на порту 8080
 #      - name: Stop process on port 8080
 #        uses: appleboy/ssh-action@v0.1.10
 #        with:
@@ -30,6 +50,8 @@ jobs:
 #            else
 #              echo "No process found on port 8080."
 #            fi
+#
+#      # Деплой на сервер
 #      - uses: appleboy/ssh-action@v0.1.10
 #        with:
 #          host: 188.225.58.99

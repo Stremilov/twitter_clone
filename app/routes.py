@@ -5,12 +5,15 @@ import os
 from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, File
 from sqlalchemy.orm import Session
 from app import schemas, models
+from app.models import User
 from app.repository.user_repository import UserRepository
 from app.repository.tweet_repository import TweetRepository
 from app.repository.media_repository import MediaRepository
 from app.database import get_db
 
 import redis
+
+from app.schemas import UserProfileResponse
 
 router = APIRouter()
 
@@ -274,7 +277,6 @@ def get_profile(api_key: str = Header(...), db: Session = Depends(get_db)):
         followers_list = [{"id": u.id, "name": u.name} for u in user_data.followers]
 
         profile = {
-            "result": "true",
             "user": {
                 "id": user_data.id,
                 "name": user_data.name,
@@ -286,7 +288,7 @@ def get_profile(api_key: str = Header(...), db: Session = Depends(get_db)):
         redis_client.set(f"Profile: {api_key}", json.dumps(profile))
         logger.info(f"Profile cached in Redis with key: Profile: {api_key}")
 
-        return profile
+        return {"result": "true", "user": profile}
 
 
 @router.get("/users/{user_id}", response_model=schemas.UserProfileResponse)
@@ -314,8 +316,10 @@ def get_user_profile(
         logger.warning(f"User profile not found for user ID: {user_id}")
         raise HTTPException(status_code=404, detail="User not found")
 
-    profile = {"result": True, "user": user_profile}
-    redis_client.set(f"User: {user_id}", json.dumps(profile))
+    user_data = schemas.User.from_orm(user_profile)
+
+    profile = {"result": True, "user": user_data}
+    redis_client.set(f"User: {user_id}", json.dumps(profile, default=lambda o: o.dict()))
     logger.info(f"User profile cached in Redis with key: User: {user_id}")
 
     return profile

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Table, ARRAY
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, Session
 from .database import Base
 
 followers = Table(
@@ -51,3 +51,16 @@ class Media(Base):
     file_path = Column(String, index=True)
     tweet_id = Column(Integer, ForeignKey("tweets.id"))
     tweet = relationship("Tweet", back_populates="media")
+
+
+def create_test_user(db: Session, name: str, api_key):
+    user = db.query(User).filter(User.name == name).first()
+
+    if user:
+        return user
+
+    user = User(name=name, api_key=api_key)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

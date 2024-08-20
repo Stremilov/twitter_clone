@@ -59,6 +59,7 @@ class User(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class FeedResponse(BaseModel):
@@ -75,3 +76,7 @@ class ErrorResponse(BaseModel):
 class UserProfileResponse(BaseModel):
     result: bool
     user: User
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
