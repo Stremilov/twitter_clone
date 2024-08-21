@@ -22,7 +22,11 @@ app_api.include_router(router)
 app.include_router(router)
 
 app.mount("/api", app_api)
-app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static"), html=True), name="static")
+app.mount(
+    "/",
+    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static"), html=True),
+    name="static",
+)
 
 
 Base.metadata.create_all(bind=engine)

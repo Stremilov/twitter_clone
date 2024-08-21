@@ -22,13 +22,11 @@ redis_client = redis.StrictRedis(host="redis", port="6379")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
 )
 
 logger = logging.getLogger(__name__)
+
 
 def save_uploaded_file(file: UploadFile):
     upload_folder = "app/static"
@@ -129,7 +127,9 @@ def delete_tweet(
         raise HTTPException(status_code=403, detail="Invalid API key")
 
     if not tweet_repo.delete_tweet(tweet_id, user.id):
-        logger.warning(f"Tweet not found or unauthorized delete attempt for tweet ID: {tweet_id}")
+        logger.warning(
+            f"Tweet not found or unauthorized delete attempt for tweet ID: {tweet_id}"
+        )
         raise HTTPException(status_code=404, detail="Tweet not found or unauthorized")
 
     redis_client.delete(f"Tweet: {tweet_id}")
@@ -152,11 +152,15 @@ def like_tweet(
         raise HTTPException(status_code=403, detail="Invalid API key")
 
     if not tweet_repo.like_tweet(tweet_id, user.id):
-        logger.warning(f"Tweet not found or unauthorized like attempt for tweet ID: {tweet_id}")
+        logger.warning(
+            f"Tweet not found or unauthorized like attempt for tweet ID: {tweet_id}"
+        )
         raise HTTPException(status_code=404, detail="Tweet not found")
 
     redis_client.delete(f"Tweet: {tweet_id}")
-    logger.info(f"Tweet removed from Redis cache after like with key: Tweet: {tweet_id}")
+    logger.info(
+        f"Tweet removed from Redis cache after like with key: Tweet: {tweet_id}"
+    )
 
     update_feed_cache(db)
 
@@ -176,11 +180,15 @@ def unlike_tweet(
         raise HTTPException(status_code=403, detail="Invalid API key")
 
     if not tweet_repo.unlike_tweet(tweet_id, user.id):
-        logger.warning(f"Tweet not found or unauthorized unlike attempt for tweet ID: {tweet_id}")
+        logger.warning(
+            f"Tweet not found or unauthorized unlike attempt for tweet ID: {tweet_id}"
+        )
         raise HTTPException(status_code=404, detail="Tweet not found")
 
     redis_client.delete(f"Tweet: {tweet_id}")
-    logger.info(f"Tweet removed from Redis cache after unlike with key: Tweet: {tweet_id}")
+    logger.info(
+        f"Tweet removed from Redis cache after unlike with key: Tweet: {tweet_id}"
+    )
 
     update_feed_cache(db)
 
@@ -203,7 +211,9 @@ def follow_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     redis_client.delete(f"User: {user_id}")
-    logger.info(f"User profile removed from Redis cache after follow with key: User: {user_id}")
+    logger.info(
+        f"User profile removed from Redis cache after follow with key: User: {user_id}"
+    )
 
     return {"result": True}
 
@@ -232,7 +242,7 @@ async def get_feed(db: Session = Depends(get_db)):
 
     if cached_tweets:
         logger.info("Returning feed from Redis cache")
-        cached_tweets = json.loads(cached_tweets.decode('utf-8'))
+        cached_tweets = json.loads(cached_tweets.decode("utf-8"))
         return {"result": True, "tweets": cached_tweets}
 
     tweet_repo = TweetRepository(db)
@@ -267,7 +277,7 @@ def get_profile(api_key: str = Header(...), db: Session = Depends(get_db)):
 
     if cached_profile:
         logger.info(f"Returning profile from Redis cache for API key: {api_key}")
-        cached_profile = json.loads(cached_profile.decode('utf-8'))
+        cached_profile = json.loads(cached_profile.decode("utf-8"))
         return cached_profile
 
     user_data = db.query(models.User).filter(models.User.api_key == api_key).first()
@@ -299,7 +309,7 @@ def get_user_profile(
 
     if cached_profile:
         logger.info(f"Returning user profile from Redis cache for user ID: {user_id}")
-        cached_profile = json.loads(cached_profile.decode('utf-8'))
+        cached_profile = json.loads(cached_profile.decode("utf-8"))
         return cached_profile
 
     user_repo = UserRepository(db)
@@ -319,7 +329,9 @@ def get_user_profile(
     user_data = schemas.User.from_orm(user_profile)
 
     profile = {"result": True, "user": user_data}
-    redis_client.set(f"User: {user_id}", json.dumps(profile, default=lambda o: o.dict()))
+    redis_client.set(
+        f"User: {user_id}", json.dumps(profile, default=lambda o: o.dict())
+    )
     logger.info(f"User profile cached in Redis with key: User: {user_id}")
 
     return profile

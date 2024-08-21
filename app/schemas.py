@@ -24,6 +24,7 @@ class Author(BaseModel):
     id: int
     name: str
 
+
 class MediaResponse(BaseModel):
     file_path: str
 
@@ -31,6 +32,7 @@ class MediaResponse(BaseModel):
 class LikeResponse(BaseModel):
     user_id: int
     name: str
+
 
 class TweetData(BaseModel):
     id: int
