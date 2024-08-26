@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models import create_test_user, Base
 
 
-SQLALCHEMY_TEST_DATABASE_URL = "postgresql://postgres:postgres@db:5432/test_db"
+SQLALCHEMY_TEST_DATABASE_URL = "postgresql://postgres:postgres@test_db:5433/test_db"
 
 engine_test_db = create_engine(SQLALCHEMY_TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(
@@ -22,11 +22,15 @@ TestingSessionLocal = sessionmaker(
 
 
 async def override_get_db():
-    async with TestingSessionLocal() as session:
-        yield session
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def db():
     app.dependency_overrides[get_db] = override_get_db
 
@@ -37,7 +41,7 @@ def db():
     # Base.metadata.drop_all(bind=engine_test_db)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def setup_and_teardown(db):
     try:
         test_user = create_test_user(db, name="Test User", api_key="test2")
