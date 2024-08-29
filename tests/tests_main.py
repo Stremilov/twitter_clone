@@ -8,12 +8,12 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.main import app
-from app.database import get_db
-from app.models import create_test_user, Base
+from app.main import app, create_test_user
+from app.database import get_db, Base
 
 
-SQLALCHEMY_TEST_DATABASE_URL = "postgresql://postgres:postgres@test_db:5433/test_db"
+# SQLALCHEMY_TEST_DATABASE_URL = "postgresql://postgres:postgres@test_db:5433/test_db"
+SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./tests.db"
 
 engine_test_db = create_engine(SQLALCHEMY_TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(
@@ -29,7 +29,6 @@ async def override_get_db():
         db.close()
 
 
-
 @pytest.fixture(scope="session")
 def db():
     app.dependency_overrides[get_db] = override_get_db
@@ -38,7 +37,7 @@ def db():
 
     yield TestingSessionLocal()
 
-    # Base.metadata.drop_all(bind=engine_test_db)
+    Base.metadata.drop_all(bind=engine_test_db)
 
 
 @pytest.fixture(scope="session")
@@ -71,7 +70,6 @@ async def test_create_tweet(setup_and_teardown):
             json={"tweet_data": "This is a test tweet", "tweet_media_ids": []},
             headers={"api-key": "test"},
         )
-    print(response.json())
     assert response.status_code == 200
     assert response.json()["result"] == True
 

@@ -5,7 +5,6 @@ import os
 from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, File
 from sqlalchemy.orm import Session
 from app import schemas, models
-from app.models import User
 from app.repository.user_repository import UserRepository
 from app.repository.tweet_repository import TweetRepository
 from app.repository.media_repository import MediaRepository
@@ -13,7 +12,6 @@ from app.database import get_db
 
 import redis
 
-from app.schemas import UserProfileResponse
 
 router = APIRouter()
 

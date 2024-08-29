@@ -4,10 +4,11 @@ import uvicorn
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 from starlette.responses import HTMLResponse
 
-from app.database import engine
-from app.models import Base
+from app.database import SessionLocal, Base, engine
+from app.models import User
 from app.routes import router
 
 app = FastAPI(
@@ -28,9 +29,23 @@ app.mount(
     name="static",
 )
 
-
 Base.metadata.create_all(bind=engine)
 
+def create_test_user(db: Session, name: str, api_key):
+    user = db.query(User).filter(User.name == name).first()
+
+    if user:
+        return user
+
+    user = User(name=name, api_key=api_key)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+db: Session = SessionLocal()
+create_test_user(db=db,name="test1", api_key="test")
+create_test_user(db=db, name="test2", api_key="test2")
 
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Table, ARRAY
-from sqlalchemy.orm import relationship, backref, Session
-from .database import Base
+from sqlalchemy.orm import relationship, backref
+from app.database import Base
+
 
 followers = Table(
     "followers",
@@ -38,7 +39,6 @@ class Tweet(Base):
     __tablename__ = "tweets"
     id = Column(Integer, primary_key=True, index=True)
     tweet_data = Column(Text, index=True)
-    tweet_media_ids = Column(ARRAY(Integer), default=None)
     author_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="tweets")
     liked_by = relationship("User", secondary=likes, back_populates="likes")
@@ -53,14 +53,5 @@ class Media(Base):
     tweet = relationship("Tweet", back_populates="media")
 
 
-def create_test_user(db: Session, name: str, api_key):
-    user = db.query(User).filter(User.name == name).first()
 
-    if user:
-        return user
-
-    user = User(name=name, api_key=api_key)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+# tweet_media_ids = Column(ARRAY(Integer), default=None)
